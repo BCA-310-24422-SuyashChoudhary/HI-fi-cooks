@@ -15,7 +15,7 @@ body { margin: 0; background: var(--cream); color: var(--ink); font-family: var(
 button, input, textarea, select { font: inherit; }
 button { color: inherit; }
 .app-shell { display: grid; grid-template-columns: 244px minmax(500px, 1fr) 318px; min-height: 100vh; max-width: 1800px; margin: auto; }
-.sidebar { background: #f5f2ea; border-right: 1px solid #eeebe4; padding: 28px 17px 20px; display: flex; flex-direction: column; min-height: 100vh; position: sticky; top: 0; height: 100vh; }
+.sidebar { background: #f5f2ea; border-right: 1px solid #eeebe4; padding: 28px 17px 20px; display: flex; flex-direction: column; min-height: 100vh; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; text-decoration: none; color: var(--ink); margin-bottom: 48px; }
 .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; background: var(--green); color: #fff9ed; font: 700 25px var(--serif); letter-spacing: -4px; padding-right: 4px; transform: rotate(-5deg); }
 .brand-mark span { color: #f2bb82; }
@@ -59,6 +59,8 @@ button { color: inherit; }
 .icon-button { position: relative; border: 0; background: none; color: #74766c; font-size: 19px; cursor: pointer; }
 .notification-button i { position: absolute; top: 2px; right: 1px; width: 5px; height: 5px; background: #e7895f; border-radius: 50%; border: 1px solid var(--cream); }
 .mobile-menu { display: none; border: 0; background: none; font-size: 20px; }
+.preview-banner { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin-top: 16px; padding: 10px 12px; border: 1px solid #e8d8b9; border-radius: 7px; background: #fbf4e6; color: #777260; font-size: 9px; line-height: 1.5; }
+.preview-banner strong { color: #80663c; white-space: nowrap; }
 .welcome-row { padding: 33px 2px 24px; display: flex; position: relative; align-items: center; justify-content: space-between; min-height: 228px; }
 .eyebrow { color: var(--green); font-size: 9px; letter-spacing: 1.45px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
 .eyebrow>span { width: 6px; height: 6px; border-radius: 50%; background: #de9569; display: inline-block; }
@@ -115,6 +117,8 @@ h2 { font: 600 22px/1.2 var(--serif); letter-spacing: -.3px; margin: 7px 0 0; }
 .recipe-card-body { padding: 11px 12px 12px; }
 .card-category { font-size: 8px; color: #a0a095; letter-spacing: .5px; text-transform: uppercase; font-weight: 600; }
 .recipe-card h3 { font: 600 15px/1.25 var(--serif); margin: 5px 0 6px; letter-spacing: -.1px; }
+.recipe-title-button { padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.recipe-title-button:hover { color: var(--green); }
 .recipe-subtitle { font-size: 9px; color: #8d8e84; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .card-meta { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f0ede7; margin-top: 12px; padding-top: 9px; font-size: 8px; color: #83847a; }
 .card-meta span:first-child { color: #c88956; }
@@ -182,6 +186,11 @@ h2 { font: 600 22px/1.2 var(--serif); letter-spacing: -.3px; margin: 7px 0 0; }
 .chef-tip>span { font-size: 17px; }
 .chef-tip strong { color: #505448; font-size: 10px; }
 .chef-tip p { color: #85867c; font-size: 9px; margin: 5px 0 0; line-height: 1.5; }
+.local-demo-notice { margin-top: 22px; border: 1px solid #e8d8b9; border-radius: 8px; background: #fbf4e6; padding: 13px 14px; color: #69634f; }
+.local-demo-notice strong { display: block; color: #80663c; font-size: 10px; margin-bottom: 6px; }
+.local-demo-notice p { color: #777260; font-size: 9px; line-height: 1.6; margin: 0 0 5px; }
+.local-demo-notice p:last-child { margin-bottom: 0; }
+.side-link:focus-visible, .category-tile:focus-visible, .recipe-card:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #68835e; outline-offset: 2px; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; background: #1c211bc9; display: grid; place-items: center; padding: 20px; }
 .recipe-modal, .form-modal { position: relative; background: var(--paper); border-radius: 12px; width: min(740px, 100%); max-height: min(90vh, 900px); overflow: auto; box-shadow: 0 20px 80px #0003; }
 .modal-close { position: sticky; float: right; top: 12px; margin: 12px 12px -46px 0; z-index: 2; border: 0; width: 31px; height: 31px; border-radius: 50%; background: #fffefaed; font-size: 22px; cursor: pointer; color: #53574d; }
@@ -250,6 +259,7 @@ h2 { font: 600 22px/1.2 var(--serif); letter-spacing: -.3px; margin: 7px 0 0; }
   .sidebar.open { transform: translateX(0); }
   .main-content { padding: 0 18px 22px; }
   .topbar { height: 61px; gap: 11px; }
+  .preview-banner { margin-top: 10px; font-size: 8px; }
   .mobile-menu { display: block; }
   .breadcrumbs { margin-right: auto; }
   .welcome-row { min-height: 185px; padding-top: 27px; }

@@ -24,12 +24,13 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+      - name: Validate website files
+        run: |
+          node --check app.js
+          test -s index.html
+          test -s styles.css
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Validate application JavaScript
-        run: node --check app.js
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:

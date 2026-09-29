@@ -1,4 +1,5 @@
 const image = (id, width = 700) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`;
+const fallbackFoodImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420"><rect width="640" height="420" fill="#e9eee3"/><circle cx="320" cy="215" r="115" fill="#fffefa"/><circle cx="320" cy="215" r="86" fill="#f5f2ea"/><text x="320" y="245" text-anchor="middle" font-size="80">🥗</text></svg>')}`;
 
 const recipes = [
   {
@@ -54,9 +55,16 @@ const recipes = [
     ingredients: [["Black tea bags", "4"], ["Fresh ginger, sliced", "20 g"], ["Boiling water", "750 ml"], ["Honey", "2 tbsp"], ["Lime juice", "2 tbsp"], ["Ice", "To serve"], ["Fresh mint", "To serve"]],
     steps: ["Add tea bags and ginger to a heat-safe jug. Pour over boiling water and steep for 4 minutes.", "Remove the tea bags. Stir in honey while warm, then cool to room temperature.", "Stir in lime juice and chill for at least 1 hour.", "Pour over ice and garnish with fresh mint and lime."],
     safety: "Refrigerate brewed tea promptly and use within 3 days."
+  },
+  {
+    id: 10, name: "Crispy masala chickpeas", subtitle: "A crunchy, warmly spiced snack from the oven", category: "Snacks", cuisine: "Snacks", time: 40, difficulty: "Easy", rating: "4.7", serves: 4, calories: 185, temperature: "200°C / 400°F", image: image("photo-1512621776951-a57141f2eefd"),
+    ingredients: [["Cooked chickpeas, drained", "2 × 400 g cans"], ["Neutral oil", "1 tbsp"], ["Ground cumin", "1 tsp"], ["Smoked paprika", "½ tsp"], ["Fine sea salt", "½ tsp"], ["Ground coriander", "½ tsp"]],
+    steps: ["Heat oven to 200°C / 400°F. Drain and rinse chickpeas; pat very dry with a clean towel. Remove any loose skins.", "Toss chickpeas with oil and spread in a single layer on a rimmed baking sheet.", "Roast for 25 minutes, shaking the pan once. Mix the spices and salt, toss with the hot chickpeas, then roast 5–10 minutes more until crisp.", "Cool briefly before serving. They crisp further as they cool; store leftovers in a clean, dry, airtight container."],
+    safety: "Use dry chickpeas and a rimmed, heat-safe baking sheet. Let the hot tray cool on a heat-safe surface."
   }
 ];
 
+const storageWarnings = [];
 let activeCategory = "All";
 let currentView = "discover";
 let searchTerm = "";
@@ -65,9 +73,50 @@ let ingredientTerms = [];
 let visibleRecipe = null;
 let servings = 0;
 let toastTimer;
-const saved = new Set(JSON.parse(localStorage.getItem("hifiSaved") || "[]"));
-const cooked = new Set(JSON.parse(localStorage.getItem("hifiCooked") || "[]"));
-recipes.unshift(...JSON.parse(localStorage.getItem("hifiCustomRecipes") || "[]"));
+let lastModalTrigger = null;
+function readStoredArray(key, isValidItem) {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored === null) return [];
+    const value = JSON.parse(stored);
+    if (!Array.isArray(value)) throw new Error("Stored value is not a list.");
+    const valid = value.filter(isValidItem);
+    if (valid.length !== value.length) storageWarnings.push(`Some invalid saved ${key.replace("hifi", "").toLowerCase()} data was ignored.`);
+    return valid;
+  } catch (error) {
+    console.error(`Could not read ${key} from browser storage.`, error);
+    storageWarnings.push("Some saved browser data could not be read. Clear this site's data or continue with a fresh session.");
+    return [];
+  }
+}
+
+function writeStoredArray(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    console.error(`Could not save ${key} to browser storage.`, error);
+    showToast("Could not save on this device. Check browser storage settings and available space.");
+    return false;
+  }
+}
+
+function isStoredRecipe(value) {
+  return value && Number.isSafeInteger(value.id) && value.id > 1e12
+    && typeof value.name === "string" && value.name.length > 0 && value.name.length <= 70
+    && typeof value.subtitle === "string" && typeof value.category === "string"
+    && typeof value.cuisine === "string" && Number.isFinite(value.time) && value.time > 0
+    && Number.isFinite(value.serves) && value.serves > 0
+    && Number.isFinite(value.calories) && value.calories >= 0
+    && typeof value.temperature === "string" && typeof value.safety === "string"
+    && Array.isArray(value.ingredients) && value.ingredients.length > 0
+    && value.ingredients.every(item => Array.isArray(item) && item.length === 2 && item.every(part => typeof part === "string"))
+    && Array.isArray(value.steps) && value.steps.length > 0 && value.steps.every(step => typeof step === "string");
+}
+
+const saved = new Set(readStoredArray("hifiSaved", value => Number.isSafeInteger(value) && value > 0));
+const cooked = new Set(readStoredArray("hifiCooked", value => Number.isSafeInteger(value) && value > 0));
+recipes.unshift(...readStoredArray("hifiCustomRecipes", isStoredRecipe));
 
 const recipeGrid = document.getElementById("recipeGrid");
 const assistantRail = document.querySelector(".assistant-rail");
@@ -110,23 +159,23 @@ function filteredRecipes() {
 function renderRecipes() {
   const filtered = filteredRecipes();
   recipeGrid.innerHTML = filtered.map(recipe => `
-    <article class="recipe-card" data-open-recipe="${recipe.id}" tabindex="0" aria-label="View ${escapeHtml(recipe.name)} recipe">
+    <article class="recipe-card" data-open-recipe="${recipe.id}" tabindex="0" role="group" aria-labelledby="recipe-title-${recipe.id}">
       <div class="recipe-image-wrap">
       <img class="recipe-image" src="${escapeHtml(recipe.image)}" alt="${escapeHtml(recipe.name)}" loading="lazy">
       <span class="recipe-tag">${recipe.time < 30 ? "QUICK & EASY" : escapeHtml(recipe.difficulty.toUpperCase())}</span>
-        <button class="favorite-button ${saved.has(recipe.id) ? "saved" : ""}" data-favorite="${recipe.id}" aria-label="${saved.has(recipe.id) ? "Remove from" : "Save to"} favorites">${saved.has(recipe.id) ? "♥" : "♡"}</button>
+        <button class="favorite-button ${saved.has(recipe.id) ? "saved" : ""}" data-favorite="${recipe.id}" aria-pressed="${saved.has(recipe.id)}" aria-label="${saved.has(recipe.id) ? "Remove from" : "Save to"} favorites">${saved.has(recipe.id) ? "♥" : "♡"}</button>
       </div>
       <div class="recipe-card-body">
         <span class="card-category">${escapeHtml(recipe.cuisine)}</span>
-        <h3>${escapeHtml(recipe.name)}</h3>
+        <h3 id="recipe-title-${recipe.id}"><button class="recipe-title-button" type="button" data-open-detail="${recipe.id}">${escapeHtml(recipe.name)}</button></h3>
         <p class="recipe-subtitle">${escapeHtml(recipe.subtitle)}</p>
-        <div class="card-meta"><span>◷ ${recipe.time} min</span><span>${recipe.difficulty}</span><span class="rating">★ ${recipe.rating}</span></div>
+        <div class="card-meta"><span>◷ ${recipe.time} min</span><span>${escapeHtml(recipe.difficulty)}</span><span class="rating">Recipe guide</span></div>
       </div>
     </article>`).join("");
   document.getElementById("recipeCount").textContent = `${filtered.length} recipes`;
   document.getElementById("emptyState").classList.toggle("hidden", filtered.length > 0);
   recipeGrid.classList.toggle("hidden", filtered.length === 0);
-  document.getElementById("recipeHeading").innerHTML = currentView === "favorites" ? "Your saved recipes <span class=\"heading-spark\">♡</span>" : currentView === "history" ? "Your cooking history <span class=\"heading-spark\">◷</span>" : activeCategory === "All" && !searchTerm && !ingredientMode ? "Recipes to fall for <span class=\"heading-spark\">✳</span>" : `${searchTerm ? "Search results" : activeCategory === "All" ? "Recipes to explore" : `${activeCategory} favorites`} <span class="heading-spark">✳</span>`;
+  document.getElementById("recipeHeading").innerHTML = currentView === "favorites" ? "Your saved recipes <span class=\"heading-spark\">♡</span>" : currentView === "history" ? "Your cooking history <span class=\"heading-spark\">◷</span>" : activeCategory === "All" && !searchTerm && !ingredientMode ? "Recipes to fall for <span class=\"heading-spark\">✳</span>" : `${searchTerm ? "Search results" : activeCategory === "All" ? "Recipes to explore" : `${escapeHtml(activeCategory)} recipes`} <span class="heading-spark">✳</span>`;
   document.getElementById("breadcrumbCurrent").textContent = currentView === "favorites" ? "Saved recipes" : currentView === "history" ? "Cooking history" : activeCategory === "All" ? "Discover" : activeCategory;
 }
 
@@ -143,18 +192,22 @@ function setCategory(category) {
 
 function renderChefTable() {
   document.getElementById("totalRecipes").textContent = recipes.length;
-  const rows = recipes.map(recipe => `<div class="chef-table-row"><div class="chef-table-recipe"><img src="${escapeHtml(recipe.image)}" alt=""><span>${escapeHtml(recipe.name)}</span></div><span>${escapeHtml(recipe.category)}</span><span>${recipe.time} min</span><span class="chef-row-actions"><span class="status-pill">Published</span><button class="row-action" data-edit-recipe="${recipe.id}" aria-label="Edit ${escapeHtml(recipe.name)}">Edit</button></span></div>`).join("");
+  document.getElementById("savedRecipesStat").textContent = saved.size;
+  document.getElementById("cookedRecipesStat").textContent = cooked.size;
+  const rows = recipes.map(recipe => `<div class="chef-table-row"><div class="chef-table-recipe"><img src="${escapeHtml(recipe.image)}" alt=""><span>${escapeHtml(recipe.name)}</span></div><span>${escapeHtml(recipe.category)}</span><span>${recipe.time} min</span><span class="chef-row-actions"><span class="status-pill">${recipe.id > 1e12 ? "This device" : "Starter recipe"}</span><button class="row-action" data-edit-recipe="${recipe.id}" aria-label="Edit ${escapeHtml(recipe.name)}">Edit</button></span></div>`).join("");
   document.getElementById("chefTable").innerHTML = `<div class="chef-table-row chef-table-head"><span>RECIPE</span><span>CUISINE</span><span>TIME</span><span>STATUS</span></div>${rows}`;
 }
 
 function openRecipe(id) {
   const recipe = recipes.find(item => item.id === Number(id));
   if (!recipe) return;
+  lastModalTrigger = document.activeElement;
   visibleRecipe = recipe;
   servings = recipe.serves;
   renderRecipeModal();
   document.getElementById("recipeModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  document.querySelector("#recipeModal [data-close-modal]").focus();
 }
 
 function renderRecipeModal() {
@@ -168,22 +221,24 @@ function renderRecipeModal() {
   const steps = recipe.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("");
   document.getElementById("modalContent").innerHTML = `
     <div class="modal-hero"><img src="${escapeHtml(recipe.image)}" alt="${escapeHtml(recipe.name)}"><div class="modal-hero-title"><span>${escapeHtml(recipe.cuisine)} · ${escapeHtml(recipe.difficulty)}</span><h2 id="modalTitle">${escapeHtml(recipe.name)}</h2></div></div>
-    <div class="modal-body"><p class="modal-description">${escapeHtml(recipe.subtitle)}. A carefully tested, confidence-building recipe with simple directions and precise quantities.</p>
+    <div class="modal-body"><p class="modal-description" id="recipeModalDescription">${escapeHtml(recipe.subtitle)}. Review the ingredients and steps before you begin; cooking times can vary by equipment and ingredients.</p>
       <div class="modal-stats"><span><b>◷</b>${recipe.time} minutes</span><span><b>♨</b>${escapeHtml(recipe.temperature)}</span><span><b>♧</b>${servings} servings</span><span><b>✳</b>${recipe.calories} kcal / serving</span></div>
       <div class="recipe-detail-grid"><section><h3>What you'll need</h3><div class="serving-adjust">Adjust servings <button data-serving="-1" aria-label="Decrease servings">−</button> <strong>${servings}</strong> <button data-serving="1" aria-label="Increase servings">+</button></div><ul class="ingredient-list">${list}</ul></section>
-      <section><h3>Let's get cooking</h3><ol class="instruction-list">${steps}</ol><div class="food-safety"><strong>Kitchen safety ·</strong> ${escapeHtml(recipe.safety)}</div><button class="primary-button start-cooking" data-start-cooking="${recipe.id}">I'm ready to cook <span>→</span></button></section></div></div>`;
+      <section><h3>Let's get cooking</h3><ol class="instruction-list">${steps}</ol><div class="food-safety"><strong>Kitchen safety ·</strong> ${escapeHtml(recipe.safety)} Nutritional values are estimates. Check package labels and use a food thermometer when appropriate.</div><button class="primary-button start-cooking" data-start-cooking="${recipe.id}">I cooked this <span>→</span></button></section></div></div>`;
 }
 
 function closeModals() {
   document.querySelectorAll(".modal-backdrop").forEach(modal => modal.classList.add("hidden"));
   document.body.style.overflow = "";
+  if (lastModalTrigger instanceof HTMLElement && lastModalTrigger.isConnected) lastModalTrigger.focus();
+  lastModalTrigger = null;
 }
 
 function showChef() {
   currentView = "chef";
   document.getElementById("discoverView").classList.add("hidden");
   document.getElementById("chefView").classList.remove("hidden");
-  document.getElementById("breadcrumbCurrent").textContent = "Chef workspace";
+  document.getElementById("breadcrumbCurrent").textContent = "Local recipe editor";
   document.querySelectorAll(".side-link").forEach(link => link.classList.remove("active"));
   renderChefTable();
   document.querySelector(".sidebar").classList.remove("open");
@@ -227,12 +282,14 @@ function sendChat(text) {
 }
 
 function showRecipeForm(recipe = null) {
-  const categories = ["Indian", "Chinese", "Italian", "Mexican", "South Indian", "Continental", "Dessert", "Beverage", "Snacks"];
+  lastModalTrigger = document.activeElement;
+  const categories = ["Indian", "North Indian", "Chinese", "Italian", "Mexican", "South Indian", "Continental", "Dessert", "Beverage", "Snacks"];
   const categoryOptions = categories.map(category => `<option ${recipe?.category === category ? "selected" : ""}>${category}</option>`).join("");
   const difficultyOptions = ["Easy", "Medium", "Advanced"].map(level => `<option ${recipe?.difficulty === level ? "selected" : ""}>${level}</option>`).join("");
   const ingredientLines = recipe ? recipe.ingredients.map(([name, amount]) => `${name}: ${amount}`).join("\n") : "";
   document.getElementById("formContent").innerHTML = `<h2 id="formTitle">${recipe ? "Edit recipe" : "Create a recipe"}</h2><p class="form-intro">Share something delicious with the Hi-Fi Cooks community.</p>
     <form class="recipe-form" id="recipeForm" data-recipe-id="${recipe ? recipe.id : ""}">
+      <p class="form-intro" id="formIntro">Recipes are saved only in this browser. They are not uploaded or shared with other visitors.</p>
       <label>Recipe name<input name="name" required maxlength="70" placeholder="e.g. Sunday tomato soup" value="${escapeHtml(recipe?.name || "")}"></label>
       <div class="form-row"><label>Cuisine<select name="category">${categoryOptions}</select></label><label>Cooking time (min)<input name="time" type="number" min="1" max="600" value="${recipe?.time || 30}" required></label></div>
       <div class="form-row"><label>Servings<input name="serves" type="number" min="1" max="30" value="${recipe?.serves || 4}" required></label><label>Difficulty<select name="difficulty">${difficultyOptions}</select></label></div>
@@ -242,10 +299,11 @@ function showRecipeForm(recipe = null) {
       <label>Ingredients, one per line (name: quantity)<textarea name="ingredients" required placeholder="Flour: 2 cups&#10;Fine sea salt: 1 tsp">${escapeHtml(ingredientLines)}</textarea></label>
       <label>Cooking steps, one per line<textarea name="steps" required placeholder="Preheat the oven...">${escapeHtml(recipe?.steps.join("\n") || "")}</textarea></label>
       <label>Food safety guidance<textarea name="safety" required placeholder="Include safe cooking temperatures and handling guidance.">${escapeHtml(recipe?.safety || "")}</textarea></label>
-      <button class="primary-button" type="submit">${recipe ? "Save changes" : "Publish recipe"} <span>→</span></button>
+      <button class="primary-button" type="submit">${recipe ? "Save changes" : "Save recipe on this device"} <span>→</span></button>
     </form>`;
   document.getElementById("formModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  document.querySelector("#formModal [data-close-modal]").focus();
 }
 
 document.addEventListener("click", event => {
@@ -254,6 +312,7 @@ document.addEventListener("click", event => {
   const categoryLink = target.closest(".cuisine-link");
   const card = target.closest("[data-open-recipe]");
   const favorite = target.closest("[data-favorite]");
+  const recipeTitle = target.closest("[data-open-detail]");
   const close = target.closest("[data-close-modal]");
   const servingButton = target.closest("[data-serving]");
   const startButton = target.closest("[data-start-cooking]");
@@ -263,11 +322,12 @@ document.addEventListener("click", event => {
   if (favorite) {
     const id = Number(favorite.dataset.favorite);
     if (saved.has(id)) saved.delete(id); else saved.add(id);
-    localStorage.setItem("hifiSaved", JSON.stringify([...saved]));
+    writeStoredArray("hifiSaved", [...saved]);
     updateSavedCount();
     renderRecipes();
     return;
   }
+  if (recipeTitle) { openRecipe(recipeTitle.dataset.openDetail); return; }
   const editButton = target.closest("[data-edit-recipe]");
   if (editButton) {
     const recipe = recipes.find(item => item.id === Number(editButton.dataset.editRecipe));
@@ -280,9 +340,10 @@ document.addEventListener("click", event => {
   if (startButton) {
     const id = Number(startButton.dataset.startCooking);
     cooked.add(id);
-    localStorage.setItem("hifiCooked", JSON.stringify([...cooked]));
+    writeStoredArray("hifiCooked", [...cooked]);
     closeModals();
-    showToast("You're all set. Let's make something wonderful!");
+    renderChefTable();
+    showToast("Added to your cooking history on this device.");
     return;
   }
   if (viewButton) {
@@ -310,11 +371,13 @@ document.getElementById("recipeSearch").addEventListener("input", event => {
 });
 document.getElementById("sortRecipes").addEventListener("change", renderRecipes);
 document.getElementById("ingredientSearch").addEventListener("click", () => {
-  document.getElementById("formContent").innerHTML = `<h2 id="formTitle">Cook with what you have</h2><p class="form-intro">Tell us what's in your kitchen and we'll find recipes that use those ingredients.</p>
+  lastModalTrigger = document.activeElement;
+  document.getElementById("formContent").innerHTML = `<h2 id="formTitle">Cook with what you have</h2><p class="form-intro" id="formIntro">Tell us what's in your kitchen and we'll find recipes that use those ingredients.</p>
     <form class="recipe-form" id="ingredientForm"><label>Your ingredients<input name="ingredients" required placeholder="e.g. chickpeas, spinach, coconut milk"></label>
     <p class="form-intro">We'll show recipes that include at least one ingredient you list.</p><button class="primary-button" type="submit">Find recipes <span>→</span></button></form>`;
   document.getElementById("formModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  document.querySelector("#formModal [data-close-modal]").focus();
 });
 document.getElementById("clearFilters").addEventListener("click", () => {
   searchTerm = "";
@@ -331,7 +394,11 @@ document.getElementById("addRecipeButton").addEventListener("click", () => showR
 document.getElementById("sidebarChatButton").addEventListener("click", () => assistantRail.classList.add("open"));
 document.getElementById("mobileAssistantButton").addEventListener("click", () => assistantRail.classList.add("open"));
 document.getElementById("closeAssistant").addEventListener("click", () => assistantRail.classList.remove("open"));
-document.getElementById("mobileMenu").addEventListener("click", () => document.querySelector(".sidebar").classList.toggle("open"));
+document.getElementById("mobileMenu").addEventListener("click", event => {
+  const sidebar = document.querySelector(".sidebar");
+  const isOpen = sidebar.classList.toggle("open");
+  event.currentTarget.setAttribute("aria-expanded", String(isOpen));
+});
 document.getElementById("chatForm").addEventListener("submit", event => { event.preventDefault(); sendChat(document.getElementById("chatInput").value); });
 document.querySelectorAll(".quick-question").forEach(button => button.addEventListener("click", () => sendChat(button.dataset.question)));
 document.getElementById("formContent").addEventListener("submit", event => {
@@ -368,20 +435,42 @@ document.getElementById("formContent").addEventListener("submit", event => {
   const updatedRecipe = { id, name: String(data.get("name")).trim(), subtitle: String(data.get("subtitle")).trim(), category, cuisine: category, time: Number(data.get("time")), difficulty: String(data.get("difficulty")), rating: existing?.rating || "New", serves: Number(data.get("serves")), calories: Number(data.get("calories")), temperature: String(data.get("temperature")).trim(), image: existing?.image || defaultImage, ingredients, steps, safety: String(data.get("safety")).trim() };
   if (existing) recipes.splice(recipes.indexOf(existing), 1, updatedRecipe);
   else recipes.unshift(updatedRecipe);
-  localStorage.setItem("hifiCustomRecipes", JSON.stringify(recipes.filter(recipe => recipe.id > 1000000000000)));
+  if (!writeStoredArray("hifiCustomRecipes", recipes.filter(recipe => recipe.id > 1e12))) {
+    recipes.splice(recipes.indexOf(updatedRecipe), 1);
+    if (existing) recipes.push(existing);
+    renderChefTable();
+    renderRecipes();
+    return;
+  }
   closeModals();
   renderChefTable();
   renderRecipes();
-  showToast("Recipe published to your library.");
+  showToast("Recipe saved on this device.");
 });
+document.addEventListener("error", event => {
+  const failedImage = event.target;
+  if (!(failedImage instanceof HTMLImageElement) || !failedImage.classList.contains("recipe-image") || failedImage.src === fallbackFoodImage) return;
+  failedImage.src = fallbackFoodImage;
+}, true);
 document.getElementById("recipeModal").addEventListener("click", event => { if (event.target.id === "recipeModal") closeModals(); });
 document.getElementById("formModal").addEventListener("click", event => { if (event.target.id === "formModal") closeModals(); });
 document.addEventListener("keydown", event => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); document.getElementById("recipeSearch").focus(); }
   if (event.key === "Escape") { closeModals(); document.querySelector(".sidebar").classList.remove("open"); assistantRail.classList.remove("open"); }
+  if (event.key === "Tab") {
+    const dialog = document.querySelector(".modal-backdrop:not(.hidden)");
+    if (dialog) {
+      const focusable = [...dialog.querySelectorAll("button, input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter(element => !element.disabled);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  }
   if ((event.key === "Enter" || event.key === " ") && event.target.matches(".recipe-card")) { event.preventDefault(); openRecipe(event.target.dataset.openRecipe); }
 });
 
 updateSavedCount();
 renderRecipes();
 renderChefTable();
+if (storageWarnings.length) showToast("Some saved data could not be used. See browser console for details.");
