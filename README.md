@@ -14,12 +14,11 @@ Then open `http://localhost:8000`.
 
 ## Publish with GitHub Pages
 
-The workflow in `.github/workflows/deploy.yml` publishes the static site whenever code is pushed to `main`, or when manually triggered from the Actions tab.
+The workflow in `.github/workflows/deploy.yml` enables GitHub Pages and publishes the static site whenever code is pushed to `main`, or when manually triggered from the Actions tab. If organization policy prevents automatic setup, choose **Settings → Pages → GitHub Actions** once, then rerun the workflow.
 
 1. Add these files to a GitHub repository and push the default branch as `main`.
-2. In the repository, open **Settings → Pages** and choose **GitHub Actions** as the build and deployment source.
-3. Open **Actions** and wait for **Deploy Hi-Fi Cooks to GitHub Pages** to finish.
-4. Find the published address in **Settings → Pages** or in the completed workflow's deployment environment.
+2. Open **Actions** and wait for **Deploy Hi-Fi Cooks to GitHub Pages** to finish. The workflow enables Pages automatically when repository policy allows it.
+3. Find the published address in **Settings → Pages** or in the completed workflow's deployment environment.
 
 The workflow validates the app JavaScript and publishes the static files from the repository root.
 
