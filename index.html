@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fbf8f2">
+    <meta name="description" content="Discover recipes, cook with confidence, and get a little help from your always-on kitchen companion.">
+    <title>Hi-Fi Cooks — Make something wonderful</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#" aria-label="Hi-Fi Cooks home">
+          <span class="brand-mark" aria-hidden="true">h<span>i</span></span>
+          <span class="brand-copy">hi-fi <strong>cooks</strong><small>GOOD FOOD, NO GUESSWORK</small></span>
+        </a>
+        <div class="sidebar-label">YOUR KITCHEN</div>
+        <nav class="side-nav">
+          <button class="side-link active" data-view="discover"><span class="nav-icon">⌂</span> Discover</button>
+          <button class="side-link" data-view="favorites"><span class="nav-icon">♡</span> Saved recipes <span class="nav-count" id="savedCount">0</span></button>
+          <button class="side-link" data-view="history"><span class="nav-icon">◷</span> Cooking history</button>
+        </nav>
+        <div class="sidebar-label cuisines-label">EXPLORE CUISINES</div>
+        <nav class="side-nav cuisine-nav">
+          <button class="side-link cuisine-link" data-category="Indian"><span class="cuisine-emoji">🍛</span> Indian</button>
+          <button class="side-link cuisine-link" data-category="Chinese"><span class="cuisine-emoji">🥢</span> Chinese</button>
+          <button class="side-link cuisine-link" data-category="Italian"><span class="cuisine-emoji">🍝</span> Italian</button>
+          <button class="side-link cuisine-link" data-category="Mexican"><span class="cuisine-emoji">🌮</span> Mexican</button>
+          <button class="side-link cuisine-link" data-category="South Indian"><span class="cuisine-emoji">🥥</span> South Indian</button>
+          <button class="side-link cuisine-link" data-category="Dessert"><span class="cuisine-emoji">🍰</span> Desserts</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="chef-card">
+            <div class="chef-avatar">👩🏽‍🍳</div>
+            <div><strong>Got a question?</strong><span>Your AI sous-chef is always on.</span></div>
+            <button id="sidebarChatButton" class="arrow-button" aria-label="Open cooking assistant">↗</button>
+          </div>
+          <button class="chef-switch" id="chefSwitch"><span>♧</span> Chef workspace <span class="switch-arrow">→</span></button>
+          <div class="profile-row"><div class="profile-avatar">A</div><div><strong>Alex Morgan</strong><span>Home cook</span></div><button class="more-button" aria-label="More profile options">···</button></div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+          <div class="breadcrumbs">Your kitchen <span>/</span> <strong id="breadcrumbCurrent">Discover</strong></div>
+          <div class="topbar-right">
+            <span class="today-label"><span class="sun-dot">✳</span> A good day to cook something</span>
+            <button class="icon-button notification-button" aria-label="Notifications">♧<i></i></button>
+          </div>
+        </header>
+
+        <section id="discoverView" class="page-view">
+          <section class="welcome-row">
+            <div>
+              <div class="eyebrow"><span></span> YOUR DAILY DOSE OF DELICIOUS</div>
+              <h1>Make something<br><em>wonderful.</em></h1>
+              <p class="welcome-copy">Good food starts with a little inspiration. What sounds delicious today?</p>
+            </div>
+            <div class="welcome-illustration" aria-hidden="true">
+              <div class="illustration-spark spark-one">✳</div>
+              <div class="illustration-spark spark-two">✦</div>
+              <div class="illustration-bowl"><span>🥗</span></div>
+              <div class="illustration-leaf leaf-one">⌁</div>
+              <div class="illustration-leaf leaf-two">⌁</div>
+            </div>
+          </section>
+
+          <section class="search-panel" aria-label="Find a recipe">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+              <input type="search" id="recipeSearch" placeholder="Search recipes, ingredients, or cuisines..." autocomplete="off">
+              <kbd>⌘ K</kbd>
+            </div>
+            <span class="search-divider"></span>
+            <button class="ingredient-search" id="ingredientSearch"><span>＋</span> Cook with what I have</button>
+          </section>
+
+          <section class="category-section">
+            <div class="section-heading">
+              <div><span class="eyebrow muted-eyebrow">A WORLD OF FLAVOR</span><h2>Explore by cuisine</h2></div>
+              <button class="text-button" data-show-all>All cuisines <span>→</span></button>
+            </div>
+            <div class="category-grid" id="categoryGrid">
+              <button class="category-tile selected" data-category="All"><span class="tile-icon all-icon">✳</span><span>All recipes</span></button>
+              <button class="category-tile" data-category="Indian"><span class="tile-icon">🍛</span><span>Indian</span></button>
+              <button class="category-tile" data-category="Chinese"><span class="tile-icon">🥢</span><span>Chinese</span></button>
+              <button class="category-tile" data-category="Italian"><span class="tile-icon">🍝</span><span>Italian</span></button>
+              <button class="category-tile" data-category="Mexican"><span class="tile-icon">🌮</span><span>Mexican</span></button>
+              <button class="category-tile" data-category="South Indian"><span class="tile-icon">🥥</span><span>South Indian</span></button>
+              <button class="category-tile" data-category="Dessert"><span class="tile-icon">🍰</span><span>Desserts</span></button>
+            </div>
+          </section>
+
+          <section class="recipes-section">
+            <div class="section-heading recipe-heading">
+              <div><span class="eyebrow muted-eyebrow">MADE FOR YOUR MOOD</span><h2 id="recipeHeading">Recipes to fall for <span class="heading-spark">✳</span></h2></div>
+              <div class="recipe-controls">
+                <span class="recipe-count" id="recipeCount"></span>
+                <label class="sort-select"><span class="sr-only">Sort recipes</span><select id="sortRecipes"><option value="featured">Featured</option><option value="quickest">Quickest</option><option value="easy">Easiest</option></select></label>
+              </div>
+            </div>
+            <div class="recipe-grid" id="recipeGrid"></div>
+            <div class="empty-state hidden" id="emptyState"><span>🥄</span><h3>No recipes found just yet</h3><p>Try another search or explore all the good things.</p><button class="primary-button" id="clearFilters">Show all recipes</button></div>
+          </section>
+          <footer class="page-footer">Made with a little butter and a lot of love <span>♡</span></footer>
+        </section>
+
+        <section id="chefView" class="page-view hidden">
+          <section class="chef-welcome">
+            <div><div class="eyebrow"><span></span> CHEF WORKSPACE</div><h1>Your recipes.<br><em>Your expertise.</em></h1><p class="welcome-copy">A thoughtful kitchen starts with recipes people can trust.</p></div>
+            <button class="primary-button add-recipe-button" id="addRecipeButton">＋ Create a recipe</button>
+          </section>
+          <div class="chef-stats">
+            <article><span class="stat-icon">♨</span><div><span>Total recipes</span><strong id="totalRecipes">0</strong><small>In your collection</small></div></article>
+            <article><span class="stat-icon peach">♡</span><div><span>Community saves</span><strong>1,284</strong><small class="positive">↑ 12% this month</small></div></article>
+            <article><span class="stat-icon yellow">◷</span><div><span>Questions answered</span><strong>36</strong><small>This week</small></div></article>
+          </div>
+          <section class="chef-recipes"><div class="section-heading"><div><span class="eyebrow muted-eyebrow">YOUR CONTRIBUTIONS</span><h2>Recipe library</h2></div><button class="text-button" id="chefBackToDiscover">View as a cook <span>→</span></button></div><div class="chef-table" id="chefTable"></div></section>
+          <section class="chef-tip"><span>✦</span><div><strong>A little tip from the kitchen</strong><p>Clear ingredient quantities and temperatures help home cooks feel confident. Include grams where you can!</p></div></section>
+        </section>
+      </main>
+
+      <aside class="assistant-rail" id="assistantRail" aria-label="Cooking assistant">
+        <div class="assistant-header"><div class="assistant-brand"><div class="assistant-orb">✳</div><div><strong>Your sous-chef</strong><span><i></i> Here whenever you need me</span></div></div><button class="rail-close" id="closeAssistant" aria-label="Close assistant">×</button></div>
+        <div class="assistant-prompt"><span class="prompt-spark">✦</span><h3>Let's make it<br><em>delicious.</em></h3><p>Ask me anything, from ingredient swaps to getting that perfect golden crust.</p></div>
+        <div class="quick-questions">
+          <span class="rail-label">A FEW IDEAS TO GET STARTED</span>
+          <button class="quick-question" data-question="What can I make with chickpeas and spinach?"><span>🥬</span> What can I cook with what's in my fridge? <b>↗</b></button>
+          <button class="quick-question" data-question="How do I know when my chicken is safely cooked?"><span>🌡️</span> How do I know when it's done? <b>↗</b></button>
+          <button class="quick-question" data-question="What's a good substitute for heavy cream?"><span>🥛</span> Help me find an ingredient swap <b>↗</b></button>
+        </div>
+        <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+        <form class="chat-composer" id="chatForm"><textarea id="chatInput" rows="1" placeholder="Ask your sous-chef anything..." aria-label="Ask your sous-chef"></textarea><button type="submit" aria-label="Send message">↑</button><span class="chat-note">AI can make mistakes. Trust your senses, too.</span></form>
+      </aside>
+    </div>
+
+    <button class="mobile-assistant-button" id="mobileAssistantButton" aria-label="Ask your cooking assistant" aria-controls="assistantRail">
+      <span>✳</span> Ask your sous-chef
+    </button>
+    <div class="modal-backdrop hidden" id="recipeModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="recipe-modal"><button class="modal-close" data-close-modal aria-label="Close recipe">×</button><div class="modal-content" id="modalContent"></div></div>
+    </div>
+    <div class="modal-backdrop hidden" id="formModal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+      <div class="form-modal"><button class="modal-close" data-close-modal aria-label="Close form">×</button><div id="formContent"></div></div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
